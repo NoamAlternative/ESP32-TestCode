@@ -5,6 +5,7 @@
 
 package frc.trigon.robot;
 
+import edu.wpi.first.wpilibj.CAN;
 import edu.wpi.first.wpilibj.Threads;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.CommandScheduler;
@@ -20,6 +21,20 @@ import org.littletonrobotics.junction.wpilog.WPILOGReader;
 import org.littletonrobotics.junction.wpilog.WPILOGWriter;
 
 public class Robot extends LoggedRobot {
+
+    // --- ESP32 CAN test sender ---
+    // Creates a "virtual CAN device" address in the WPILib CAN protocol.
+    // deviceId must be 0-63. Pick an unused number for your LED controller.
+    private final CAN esp32Can = new CAN(42, CAN.kTeamManufacturer, CAN.kTeamDeviceType);
+
+    // 10-bit API ID (0-1023). This is like a "message type" for your packets.
+    private static final int ESP32_API_ID = 0x123;
+
+    // Payload to send (up to 8 bytes). We'll send a 1-byte "hello" + RGB test.
+    private static final byte[] ESP32_TEST_PAYLOAD =
+            new byte[]{ (byte) 0x42, (byte) 255, (byte) 0, (byte) 0 };
+
+
     public static final boolean IS_REAL = Robot.isReal();
     private final CommandScheduler commandScheduler = CommandScheduler.getInstance();
     private Command autonomousCommand;
@@ -29,6 +44,10 @@ public class Robot extends LoggedRobot {
         RobotConstants.init();
         configLogger();
         robotContainer = new RobotContainer();
+
+        // Start repeating the test packet so the ESP32 can detect it.
+        // This sends every 100ms automatically.
+        esp32Can.writePacketRepeating(ESP32_TEST_PAYLOAD, ESP32_API_ID, 100);
     }
 
     @Override
